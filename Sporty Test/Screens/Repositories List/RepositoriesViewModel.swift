@@ -18,22 +18,9 @@ protocol RepositoriesViewModelDelegate: AnyObject {
 class RepositoriesViewModel {
     
     enum State: Equatable {
-        static func == (lhs: RepositoriesViewModel.State, rhs: RepositoriesViewModel.State) -> Bool {
-            switch (lhs, rhs) {
-            case (.loading, .loading):
-                return true
-            case (.success, .success):
-                return true
-            case (.error(let lhsError), .error(let rhsError)):
-                return lhsError.localizedDescription == rhsError.localizedDescription
-            default:
-                return false
-            }
-        }
-        
         case loading
         case success
-        case error(Error)
+        case error(String)
     }
     
     // MARK: - PRIVATE PROPERTIES
@@ -73,7 +60,7 @@ class RepositoriesViewModel {
             repositories = try await gitHubAPI.repositoriesForOrganisation("swiftlang")
             state = .success
         } catch {
-            state = .error(error)
+            state = .error(error.localizedDescription)
         }
     }
 }

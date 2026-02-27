@@ -123,10 +123,7 @@ extension RepositoriesViewController {
             return tableViewCell
         }
 
-        repositoryCell.name = repository.name
-        repositoryCell.descriptionText = repository.description
-        repositoryCell.starCountText = repository.stargazersCount.formatted()
-
+        repositoryCell.setup(by: repository)
         return repositoryCell
     }
 }
