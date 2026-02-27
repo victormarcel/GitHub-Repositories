@@ -2,6 +2,11 @@ import UIKit
 
 /// A cell displaying the basic information of a GitHub repository.
 final class RepositoryTableViewCell: UITableViewCell {
+    
+    // MARK: - STATIC PROPERTIES
+    
+    static let className = String(describing: RepositoryTableViewCell.self)
+    
     /// The name of the repository.
     var name: String? {
         get {

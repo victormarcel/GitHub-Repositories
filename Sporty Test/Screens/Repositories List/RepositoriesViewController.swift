@@ -6,17 +6,32 @@ import UIKit
 
 /// A view controller that displays a list of GitHub repositories for the "swiftlang" organization.
 final class RepositoriesViewController: UITableViewController {
-    private let gitHubAPI: GitHubAPI
-    private let mockLiveServer: MockLiveServer
-    private var repositories: [GitHubMinimalRepository] = []
+    
+    // MARK: - CONSTANTS
+    
+    private enum Constants {
+        
+        enum ViewController {
+            static let title = "swiftlang"
+        }
+        
+        enum TableView {
+            static let numberOfSections = 1
+        }
+    }
+    
+    // MARK: - PRIVATE PROPERTIES
+    
+    private let viewModel: RepositoriesViewModel
 
-    init(gitHubAPI: GitHubAPI, mockLiveServer: MockLiveServer) {
-        self.gitHubAPI = gitHubAPI
-        self.mockLiveServer = mockLiveServer
+    // MARK: - INITIALIZERS
+    
+    init(viewModel: RepositoriesViewModel) {
+        self.viewModel = viewModel
 
         super.init(style: .insetGrouped)
-
-        title = "swiftlang"
+        
+        viewModel.delegate = self
     }
 
     @available(*, unavailable)
@@ -24,51 +39,94 @@ final class RepositoriesViewController: UITableViewController {
         fatalError("init(coder:) has not been implemented")
     }
 
+    // MARK: - LIFE CYCLE
+    
     override func viewDidLoad() {
         super.viewDidLoad()
-
-        tableView.register(RepositoryTableViewCell.self, forCellReuseIdentifier: "RepositoryCell")
-
-        Task {
-            await loadRepositories()
+        
+        setup()
+        viewModel.onViewDidLoad()
+    }
+    
+    // MARK: - PRIVATE METHODS
+    
+    private func setup() {
+        setupLayout()
+    }
+    
+    private func setupLayout() {
+        title = Constants.ViewController.title
+        tableView.register(RepositoryTableViewCell.self, forCellReuseIdentifier: RepositoryTableViewCell.className)
+    }
+    
+    private func handleStateChange(_ state: RepositoriesViewModel.State) {
+        switch state {
+        case .loading:
+            handleLoadingState(true)
+        case .success:
+            handleLoadingState(false)
+            tableView.reloadData()
+        case .error:
+            handleLoadingState(false)
         }
     }
-
-    override func numberOfSections(in tableView: UITableView) -> Int {
-        1
+    
+    private func handleLoadingState(_ isLoading: Bool) {
+        tableView.reloadData()
+        tableView.backgroundView = isLoading ? buildAnimationBackgroundView() : nil
     }
-
-    override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        repositories.count
+    
+    private func buildAnimationBackgroundView() -> UIView {
+        let spinner = UIActivityIndicatorView(style: .large)
+        spinner.startAnimating()
+        return spinner
     }
+}
 
-    override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let repository = repositories[indexPath.row]
-        let cell = tableView.dequeueReusableCell(withIdentifier: "RepositoryCell", for: indexPath) as! RepositoryTableViewCell
-
-        cell.name = repository.name
-        cell.descriptionText = repository.description
-        cell.starCountText = repository.stargazersCount.formatted()
-
-        return cell
+extension RepositoriesViewController: RepositoriesViewModelDelegate {
+    
+    func onStateUpdate(_ state: RepositoriesViewModel.State) {
+        handleStateChange(state)
     }
+}
 
+// MARK: -  TABLE VIEW DELEGATE
+extension RepositoriesViewController {
+    
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        let repository = repositories[indexPath.row]
+        let repository = viewModel.repositories[indexPath.row]
+        // TODO: Navigate to repository view controller through AppCoordinator
         let viewController = RepositoryViewController(
             minimalRepository: repository,
-            gitHubAPI: gitHubAPI
+            gitHubAPI: GitHubAPI()
         )
         show(viewController, sender: self)
     }
+}
 
-    private func loadRepositories() async {
-        do {
-            let api = GitHubAPI()
-            repositories = try await api.repositoriesForOrganisation("swiftlang")
-            tableView.reloadData()
-        } catch {
-            print("Error loading repositories: \(error)")
+// MARK: - TABLE VIEW DATASOURCE
+extension RepositoriesViewController {
+    
+    override func numberOfSections(in tableView: UITableView) -> Int {
+        Constants.TableView.numberOfSections
+    }
+
+    override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        viewModel.state == .loading ? .zero : viewModel.repositories.count
+    }
+
+    override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let repository = viewModel.repositories[indexPath.row]
+        let tableViewCell = tableView.dequeueReusableCell(withIdentifier: RepositoryTableViewCell.className, for: indexPath)
+        
+        guard let repositoryCell = tableViewCell as? RepositoryTableViewCell else {
+            return tableViewCell
         }
+
+        repositoryCell.name = repository.name
+        repositoryCell.descriptionText = repository.description
+        repositoryCell.starCountText = repository.stargazersCount.formatted()
+
+        return repositoryCell
     }
 }

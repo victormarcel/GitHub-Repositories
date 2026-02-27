@@ -15,10 +15,10 @@ final class AppCoordinator {
     }
 
     func start() {
+        let repositoriesViewModel = RepositoriesViewModel(gitHubAPI: gitHubAPI, mockLiveServer: mockLiveServer)
         window.rootViewController = UINavigationController(
             rootViewController: RepositoriesViewController(
-                gitHubAPI: gitHubAPI,
-                mockLiveServer: mockLiveServer
+                viewModel: repositoriesViewModel
             )
         )
         window.makeKeyAndVisible()
