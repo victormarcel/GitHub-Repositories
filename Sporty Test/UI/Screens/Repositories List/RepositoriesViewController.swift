@@ -32,6 +32,7 @@ final class RepositoriesViewController: UITableViewController {
     // MARK: - PRIVATE PROPERTIES
     
     private let viewModel: RepositoriesViewModel
+//    private let refreshControl = UIRefreshControl()
     
     // MARK: - INTERNAL PROPERTIES
 
@@ -69,18 +70,31 @@ final class RepositoriesViewController: UITableViewController {
     
     private func setupLayout() {
         title = Constants.ViewController.title
-        tableView.register(RepositoryTableViewCell.self, forCellReuseIdentifier: RepositoryTableViewCell.className)
+        setupTableView()
     }
     
-    private func handleStateChange(_ state: RepositoriesViewModel.State) {
+    private func setupTableView() {
+        tableView.showsVerticalScrollIndicator = false
+        tableView.register(RepositoryTableViewCell.self, forCellReuseIdentifier: RepositoryTableViewCell.className)
+        tableView.refreshControl = UIRefreshControl()
+        tableView.refreshControl?.addTarget(self, action: #selector(didPullToRefresh), for: .valueChanged)
+    }
+    
+    @objc
+    private func didPullToRefresh() {
+        viewModel.didPullToRefresh()
+    }
+    
+    private func handleStateChange(_ state: RepositoriesScreenState) {
         switch state {
         case .loading:
             handleLoadingState(true)
         case .success:
-            handleLoadingState(false)
-            tableView.reloadData()
+            handleSuccessState()
         case .error:
             handleLoadingState(false)
+        default:
+            return
         }
     }
     
@@ -94,11 +108,17 @@ final class RepositoriesViewController: UITableViewController {
         spinner.startAnimating()
         return spinner
     }
+    
+    private func handleSuccessState() {
+        tableView.refreshControl?.endRefreshing()
+        handleLoadingState(false)
+        tableView.reloadData()
+    }
 }
 
 extension RepositoriesViewController: RepositoriesViewModelDelegate {
     
-    func onStateUpdate(_ state: RepositoriesViewModel.State) {
+    func onStateUpdate(_ state: RepositoriesScreenState) {
         handleStateChange(state)
     }
 }

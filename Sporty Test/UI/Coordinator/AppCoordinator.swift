@@ -33,7 +33,9 @@ final class AppCoordinator {
         push(viewController)
     }
     
-    func push(_ viewController: UIViewController, animated: Bool = true) {
+    // MARK: - PRIVATE METHODS
+    
+    private func push(_ viewController: UIViewController, animated: Bool = true) {
         navigationViewController?.pushViewController(viewController, animated: animated)
     }
 }

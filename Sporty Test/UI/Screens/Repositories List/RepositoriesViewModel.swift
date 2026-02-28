@@ -11,17 +11,11 @@ import MockLiveServer
 
 protocol RepositoriesViewModelDelegate: AnyObject {
     
-    func onStateUpdate(_ state: RepositoriesViewModel.State)
+    func onStateUpdate(_ state: RepositoriesScreenState)
 }
 
 @MainActor
 class RepositoriesViewModel {
-    
-    enum State: Equatable {
-        case loading
-        case success
-        case error(String)
-    }
     
     // MARK: - PRIVATE PROPERTIES
     
@@ -31,7 +25,7 @@ class RepositoriesViewModel {
     // MARK: - INTERNAL PROPERTIES
     
     private(set) var repositories: [GitHubMinimalRepository] = []
-    private(set) var state: State? {
+    private(set) var state: RepositoriesScreenState? {
         didSet {
             guard let state else { return }
             delegate?.onStateUpdate(state)
@@ -50,13 +44,22 @@ class RepositoriesViewModel {
     
     func onViewDidLoad() {
         Task {
-            await loadRepositories()
+            await loadRepositories(triggeredBy: .viewDidLoad)
         }
     }
     
-    func loadRepositories() async {
-        state = .loading
+    func didPullToRefresh() {
+        Task {
+            await loadRepositories(triggeredBy: .pullToRefresh)
+        }
+    }
+    
+    // MARK: - PRIVATE METHODS
+    
+    private func loadRepositories(triggeredBy event: RepositoriesScreenFetchEvent) async {
+        state = event.loadingState
         do {
+            try await Task.sleep(for: .seconds(1))
             repositories = try await gitHubAPI.repositoriesForOrganisation("swiftlang")
             state = .success
         } catch {

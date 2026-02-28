@@ -32,6 +32,7 @@ public struct GitHubAPI: Sendable {
     public func repositoriesForOrganisation(_ organisation: String) async throws -> [GitHubMinimalRepository] {
         let url = baseURL.appendingPathComponent("orgs/\(organisation)/repos")
         var request = URLRequest(url: url)
+        request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
         request.setValue("application/vnd.github.v3+json", forHTTPHeaderField: "Accept")
         request.setValue("2022-11-28", forHTTPHeaderField: "X-GitHub-Api-Version")
 
