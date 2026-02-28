@@ -4,6 +4,15 @@ import MockLiveServer
 import SwiftUI
 import UIKit
 
+@MainActor
+protocol RepositoriesViewControllerDelegate: AnyObject {
+    
+    func repositoriesViewController(
+        viewController: RepositoriesViewController,
+        didTapOn repository: GitHubMinimalRepository
+    )
+}
+
 /// A view controller that displays a list of GitHub repositories for the "swiftlang" organization.
 final class RepositoriesViewController: UITableViewController {
     
@@ -23,7 +32,11 @@ final class RepositoriesViewController: UITableViewController {
     // MARK: - PRIVATE PROPERTIES
     
     private let viewModel: RepositoriesViewModel
+    
+    // MARK: - INTERNAL PROPERTIES
 
+    weak var delegate: RepositoriesViewControllerDelegate?
+    
     // MARK: - INITIALIZERS
     
     init(viewModel: RepositoriesViewModel) {
@@ -94,13 +107,11 @@ extension RepositoriesViewController: RepositoriesViewModelDelegate {
 extension RepositoriesViewController {
     
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        let repository = viewModel.repositories[indexPath.row]
-        // TODO: Navigate to repository view controller through AppCoordinator
-        let viewController = RepositoryViewController(
-            minimalRepository: repository,
-            gitHubAPI: GitHubAPI()
-        )
-        show(viewController, sender: self)
+        guard let repository = viewModel.repositories[safe: indexPath.row] else {
+            return
+        }
+        
+        delegate?.repositoriesViewController(viewController: self, didTapOn: repository)
     }
 }
 
@@ -116,10 +127,10 @@ extension RepositoriesViewController {
     }
 
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let repository = viewModel.repositories[indexPath.row]
+        let repository = viewModel.repositories[safe: indexPath.row]
         let tableViewCell = tableView.dequeueReusableCell(withIdentifier: RepositoryTableViewCell.className, for: indexPath)
         
-        guard let repositoryCell = tableViewCell as? RepositoryTableViewCell else {
+        guard let repository, let repositoryCell = tableViewCell as? RepositoryTableViewCell else {
             return tableViewCell
         }
 
