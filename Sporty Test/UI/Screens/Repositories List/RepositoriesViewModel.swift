@@ -25,7 +25,7 @@ class RepositoriesViewModel {
     
     // MARK: - PRIVATE PROPERTIES
 
-    private let service: RepositoriesServiceProtocol
+    private let service: RepositoryServiceProtocol
     
     // MARK: - INTERNAL PROPERTIES
     
@@ -41,7 +41,7 @@ class RepositoriesViewModel {
     
     // MARK: - INITIALIZERS
     
-    init(service: RepositoriesServiceProtocol) {
+    init(service: RepositoryServiceProtocol) {
         self.service = service
     }
     

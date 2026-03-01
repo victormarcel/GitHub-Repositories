@@ -105,10 +105,10 @@ final class RepositoriesViewController: UITableViewController {
     
     private func setupLayoutConstraints() {
         NSLayoutConstraint.activate([
-            searchInputView.topAnchor.constraint(equalTo: tableView.topAnchor),
-            searchInputView.leadingAnchor.constraint(equalTo: tableView.leadingAnchor),
-            searchInputView.trailingAnchor.constraint(equalTo: tableView.trailingAnchor),
-            searchInputView.widthAnchor.constraint(equalTo: tableView.widthAnchor)
+            searchView.topAnchor.constraint(equalTo: tableView.topAnchor),
+            searchView.leadingAnchor.constraint(equalTo: tableView.leadingAnchor),
+            searchView.trailingAnchor.constraint(equalTo: tableView.trailingAnchor),
+            searchView.widthAnchor.constraint(equalTo: tableView.widthAnchor)
         ])
     }
     
@@ -117,7 +117,7 @@ final class RepositoriesViewController: UITableViewController {
         tableView.register(RepositoryTableViewCell.self, forCellReuseIdentifier: RepositoryTableViewCell.className)
         tableView.refreshControl = UIRefreshControl()
         tableView.refreshControl?.addTarget(self, action: #selector(didPullToRefresh), for: .valueChanged)
-        tableView.tableHeaderView = searchInputView
+        tableView.tableHeaderView = searchView
     }
     
     @objc
