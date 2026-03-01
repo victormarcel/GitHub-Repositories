@@ -6,6 +6,7 @@
 //
 
 enum RepositoriesScreenState: Equatable {
+    
     case loading
     case refreshing
     case success

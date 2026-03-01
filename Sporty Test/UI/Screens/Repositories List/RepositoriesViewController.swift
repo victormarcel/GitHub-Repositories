@@ -21,7 +21,7 @@ final class RepositoriesViewController: UITableViewController {
     private enum Constants {
         
         enum ViewController {
-            static let title = "swiftlang"
+            static let title = "Repositories"
         }
         
         enum TableView {
@@ -32,27 +32,26 @@ final class RepositoriesViewController: UITableViewController {
     // MARK: - PRIVATE PROPERTIES
     
     private let viewModel: RepositoriesViewModel
-//    private let refreshControl = UIRefreshControl()
     
     // MARK: - INTERNAL PROPERTIES
-
+    
     weak var delegate: RepositoriesViewControllerDelegate?
     
     // MARK: - INITIALIZERS
     
     init(viewModel: RepositoriesViewModel) {
         self.viewModel = viewModel
-
+        
         super.init(style: .insetGrouped)
         
         viewModel.delegate = self
     }
-
+    
     @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-
+    
     // MARK: - LIFE CYCLE
     
     override func viewDidLoad() {
@@ -62,10 +61,21 @@ final class RepositoriesViewController: UITableViewController {
         viewModel.onViewDidLoad()
     }
     
+    // MARK: - UI
+    
+    private lazy var searchInputView: SearchView = {
+        let searchView = SearchView()
+        searchView.translatesAutoresizingMaskIntoConstraints = false
+        searchView.onSearchTapped = viewModel.onSearchTap
+        searchView.setText(RepositoriesViewModel.Constants.defaultOrganizationName)
+        return searchView
+    }()
+    
     // MARK: - PRIVATE METHODS
     
     private func setup() {
         setupLayout()
+        setupLayoutConstraints()
     }
     
     private func setupLayout() {
@@ -73,11 +83,21 @@ final class RepositoriesViewController: UITableViewController {
         setupTableView()
     }
     
+    private func setupLayoutConstraints() {
+        NSLayoutConstraint.activate([
+            searchInputView.topAnchor.constraint(equalTo: tableView.topAnchor),
+            searchInputView.leadingAnchor.constraint(equalTo: tableView.leadingAnchor),
+            searchInputView.trailingAnchor.constraint(equalTo: tableView.trailingAnchor),
+            searchInputView.widthAnchor.constraint(equalTo: tableView.widthAnchor)
+        ])
+    }
+    
     private func setupTableView() {
         tableView.showsVerticalScrollIndicator = false
         tableView.register(RepositoryTableViewCell.self, forCellReuseIdentifier: RepositoryTableViewCell.className)
         tableView.refreshControl = UIRefreshControl()
         tableView.refreshControl?.addTarget(self, action: #selector(didPullToRefresh), for: .valueChanged)
+        tableView.tableHeaderView = searchInputView
     }
     
     @objc
@@ -141,11 +161,11 @@ extension RepositoriesViewController {
     override func numberOfSections(in tableView: UITableView) -> Int {
         Constants.TableView.numberOfSections
     }
-
+    
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         viewModel.state == .loading ? .zero : viewModel.repositories.count
     }
-
+    
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let repository = viewModel.repositories[safe: indexPath.row]
         let tableViewCell = tableView.dequeueReusableCell(withIdentifier: RepositoryTableViewCell.className, for: indexPath)
@@ -153,7 +173,7 @@ extension RepositoriesViewController {
         guard let repository, let repositoryCell = tableViewCell as? RepositoryTableViewCell else {
             return tableViewCell
         }
-
+        
         repositoryCell.setup(by: repository)
         return repositoryCell
     }

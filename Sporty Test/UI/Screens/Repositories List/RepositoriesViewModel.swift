@@ -17,6 +17,11 @@ protocol RepositoriesViewModelDelegate: AnyObject {
 @MainActor
 class RepositoriesViewModel {
     
+    enum Constants {
+        
+        static let defaultOrganizationName = "swiftlang"
+    }
+    
     // MARK: - PRIVATE PROPERTIES
     
     private let gitHubAPI: GitHubAPI
@@ -25,6 +30,7 @@ class RepositoriesViewModel {
     // MARK: - INTERNAL PROPERTIES
     
     private(set) var repositories: [GitHubMinimalRepository] = []
+    private(set) var currentOrganizationName: String = .empty
     private(set) var state: RepositoriesScreenState? {
         didSet {
             guard let state else { return }
@@ -43,27 +49,47 @@ class RepositoriesViewModel {
     // MARK: - INTERNAL METHODS
     
     func onViewDidLoad() {
-        Task {
-            await loadRepositories(triggeredBy: .viewDidLoad)
-        }
+        fetchRepositories(by: Constants.defaultOrganizationName , fetchEvent: .viewDidLoad)
     }
     
     func didPullToRefresh() {
-        Task {
-            await loadRepositories(triggeredBy: .pullToRefresh)
-        }
+        fetchRepositories(by: currentOrganizationName, fetchEvent: .pullToRefresh)
+    }
+    
+    func onSearchTap(_ text: String) {
+        fetchRepositories(by: text, fetchEvent: .searchButton)
     }
     
     // MARK: - PRIVATE METHODS
     
-    private func loadRepositories(triggeredBy event: RepositoriesScreenFetchEvent) async {
+    private func fetchRepositories(by organizationName: String, fetchEvent: RepositoriesScreenFetchEvent) {
+        guard !organizationName.isEmpty else {
+            return
+        }
+        
+        Task {
+            await performRepositoriesRequest(organizationName: organizationName, triggeredBy: fetchEvent)
+        }
+    }
+    
+    private func performRepositoriesRequest(
+        organizationName: String,
+        triggeredBy event: RepositoriesScreenFetchEvent
+    ) async {
         state = event.loadingState
         do {
             try await Task.sleep(for: .seconds(1))
-            repositories = try await gitHubAPI.repositoriesForOrganisation("swiftlang")
+            repositories = try await gitHubAPI.repositoriesForOrganisation(organizationName)
+            currentOrganizationName = organizationName
             state = .success
         } catch {
+            cleanCurrentOrganizationResult()
             state = .error(error.localizedDescription)
         }
+    }
+    
+    private func cleanCurrentOrganizationResult() {
+        repositories = []
+        currentOrganizationName = .empty
     }
 }

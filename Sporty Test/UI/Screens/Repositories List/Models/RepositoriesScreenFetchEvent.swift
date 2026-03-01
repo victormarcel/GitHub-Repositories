@@ -6,12 +6,14 @@
 //
 
 enum RepositoriesScreenFetchEvent: Equatable {
+    
     case viewDidLoad
     case pullToRefresh
+    case searchButton
     
     var loadingState: RepositoriesScreenState {
         switch self {
-        case .viewDidLoad:
+        case .viewDidLoad, .searchButton:
             return .loading
         case .pullToRefresh:
             return .refreshing
