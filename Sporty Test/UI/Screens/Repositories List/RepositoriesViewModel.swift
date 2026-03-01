@@ -12,13 +12,13 @@ import MockLiveServer
 protocol RepositoriesViewModelDelegate: AnyObject {
     
     func onStateUpdate(_ state: RepositoriesScreenState)
+    func onPullToRefreshError()
 }
 
 @MainActor
 class RepositoriesViewModel {
     
     enum Constants {
-        
         static let defaultOrganizationName = "swiftlang"
     }
     
@@ -57,19 +57,25 @@ class RepositoriesViewModel {
     }
     
     func onSearchTap(_ text: String) {
-        fetchRepositories(by: text, fetchEvent: .searchButton)
+        fetchRepositories(by: text.trimmingCharacters(in: .whitespaces), fetchEvent: .searchButton)
     }
+    
+    
     
     // MARK: - PRIVATE METHODS
     
     private func fetchRepositories(by organizationName: String, fetchEvent: RepositoriesScreenFetchEvent) {
-        guard !organizationName.isEmpty else {
+        guard isValidOrganizationName(organizationName) || fetchEvent == .pullToRefresh else {
             return
         }
         
         Task {
             await performRepositoriesRequest(organizationName: organizationName, triggeredBy: fetchEvent)
         }
+    }
+    
+    private func isValidOrganizationName(_ name: String) -> Bool {
+        !name.isEmpty && name != currentOrganizationName
     }
     
     private func performRepositoriesRequest(
@@ -83,13 +89,26 @@ class RepositoriesViewModel {
             currentOrganizationName = organizationName
             state = .success
         } catch {
+            guard event != .pullToRefresh else {
+                delegate?.onPullToRefreshError()
+                return
+            }
+            
             cleanCurrentOrganizationResult()
-            state = .error(error.localizedDescription)
+            state = buildState(by: error)
         }
     }
     
     private func cleanCurrentOrganizationResult() {
         repositories = []
         currentOrganizationName = .empty
+    }
+    
+    private func buildState(by error: Error) -> RepositoriesScreenState {
+        guard let githubErrorState = error as? GitHubAPIError else {
+            return .error(.invalidResponse)
+        }
+        
+        return .error(githubErrorState)
     }
 }

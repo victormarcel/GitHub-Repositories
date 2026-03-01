@@ -185,6 +185,7 @@ final class SearchView: UIView {
 extension SearchView: UITextFieldDelegate {
     
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+        textField.resignFirstResponder()
         onSearchTapped?(textField.text ?? .empty)
         return true
     }

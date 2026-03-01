@@ -5,10 +5,32 @@ import Foundation
 /// You may choose to add new functions here if you would like to access new endpoints. Don't worry
 /// about improving this type (e.g. removing duplication); just add what you need.
 public struct GitHubAPI: Sendable {
+    
+    // MARK: - CONSTANTS
+    
+    private enum Constants {
+        
+        enum StatusCode {
+            static let successRange = (200...299)
+            static let unauthorized = 401
+            static let notFound = 404
+        }
+    }
+    
+    // MARK: - PRIVATE PROPERTIES
+    
     private let baseURL: URL
     private let authorisationToken: String?
     private let urlSession: URLSession
-
+    
+    private let decoder: JSONDecoder = {
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        return decoder
+    }()
+    
+    // MARK: - INITIALIZERS
+    
     /// Creates a new object for interacting with the GitHub API.
     ///
     /// - parameter baseURL: The base URL for the GitHub API. Defaults to `https://api.github.com`.
@@ -23,7 +45,9 @@ public struct GitHubAPI: Sendable {
         self.authorisationToken = authorisationToken
         self.urlSession = urlSession
     }
-
+    
+    // MARK: - PUBLIC METHODS
+    
     /// Retrieves the repositories for a given organisation.
     ///
     /// - parameter organisation: The name of the organisation to retrieve repositories for.
@@ -35,17 +59,15 @@ public struct GitHubAPI: Sendable {
         request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
         request.setValue("application/vnd.github.v3+json", forHTTPHeaderField: "Accept")
         request.setValue("2022-11-28", forHTTPHeaderField: "X-GitHub-Api-Version")
-
+        
         if let authorisationToken {
             request.setValue("Bearer \(authorisationToken)", forHTTPHeaderField: "Authorization")
         }
 
-        let (data, _) = try await urlSession.data(for: request)
-        let decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
-        return try decoder.decode([GitHubMinimalRepository].self, from: data)
+        let (data, response) = try await urlSession.data(for: request)
+        return try handleResponse(response, data: data)
     }
-
+    
     /// Retrieves a specific repository by its full name. The full name should be a value returned
     /// by the GitHub API and is in the form `<owner>/<repository>`.
     ///
@@ -56,14 +78,48 @@ public struct GitHubAPI: Sendable {
         var request = URLRequest(url: url)
         request.setValue("application/vnd.github.v3+json", forHTTPHeaderField: "Accept")
         request.setValue("2022-11-28", forHTTPHeaderField: "X-GitHub-Api-Version")
-
+        
         if let authorisationToken {
             request.setValue("Bearer \(authorisationToken)", forHTTPHeaderField: "Authorization")
         }
-
-        let (data, _) = try await urlSession.data(for: request)
-        let decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
-        return try decoder.decode(GitHubFullRepository.self, from: data)
+        
+        let (data, response) = try await urlSession.data(for: request)
+        return try handleResponse(response, data: data)
+    }
+    
+    // MARK: - PRIVATE METHODS
+    
+    /// Validates the HTTP response and decodes the response body into the specified type.
+    /// Throws a `GitHubAPIError` if the response is invalid, unsuccessful, or cannot be decoded.
+    ///
+    /// - Parameters:
+    ///   - response: The raw `URLResponse` received from the network request.
+    ///   - data: The raw `Data` returned alongside the response.
+    private func handleResponse<T: Codable>(_ response: URLResponse, data: Data) throws(GitHubAPIError) -> T {
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw .invalidResponse
+        }
+        
+        guard Constants.StatusCode.successRange.contains(httpResponse.statusCode) else {
+            try handleError(by: httpResponse)
+        }
+        
+        do {
+            return try decoder.decode(T.self, from: data)
+        } catch {
+            throw .parserError(error)
+        }
+    }
+    
+    /// Maps an unsuccessful HTTP status code to its corresponding `GitHubAPIError`.
+    /// This method always throws and never returns normally.
+    ///
+    /// - Parameter response: The `HTTPURLResponse` containing the status code to evaluate.
+    private func handleError(by response: HTTPURLResponse) throws(GitHubAPIError) -> Never {
+        switch response.statusCode {
+        case Constants.StatusCode.unauthorized: throw .unauthorized
+        case Constants.StatusCode.notFound: throw .notFound
+        default: throw .serviceError(response.description)
+        }
     }
 }

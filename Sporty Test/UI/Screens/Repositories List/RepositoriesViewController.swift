@@ -27,6 +27,20 @@ final class RepositoriesViewController: UITableViewController {
         enum TableView {
             static let numberOfSections = 1
         }
+        
+        enum FeedbackView {
+            static let errorStateData = FeedbackViewData(
+                imageName: "wifi.slash",
+                title: "Couldn't Load Repositories",
+                description: "Something went wrong on our end. Please try again later."
+            )
+            
+            static let emptyStateData = FeedbackViewData(
+                imageName: "tray",
+                title: "No Repositories Found",
+                description: "We couldn't find any repositories matching your search. Try different keywords."
+            )
+        }
     }
     
     // MARK: - PRIVATE PROPERTIES
@@ -63,12 +77,18 @@ final class RepositoriesViewController: UITableViewController {
     
     // MARK: - UI
     
-    private lazy var searchInputView: SearchView = {
+    private lazy var searchView: SearchView = {
         let searchView = SearchView()
         searchView.translatesAutoresizingMaskIntoConstraints = false
         searchView.onSearchTapped = viewModel.onSearchTap
         searchView.setText(RepositoriesViewModel.Constants.defaultOrganizationName)
         return searchView
+    }()
+    
+    private lazy var feedbackView: FeedbackView = {
+        let view = FeedbackView()
+        view.translatesAutoresizingMaskIntoConstraints = true
+        return view
     }()
     
     // MARK: - PRIVATE METHODS
@@ -112,7 +132,7 @@ final class RepositoriesViewController: UITableViewController {
         case .success:
             handleSuccessState()
         case .error:
-            handleLoadingState(false)
+            handleErrorState()
         default:
             return
         }
@@ -121,6 +141,7 @@ final class RepositoriesViewController: UITableViewController {
     private func handleLoadingState(_ isLoading: Bool) {
         tableView.reloadData()
         tableView.backgroundView = isLoading ? buildAnimationBackgroundView() : nil
+        tableView.isScrollEnabled = false
     }
     
     private func buildAnimationBackgroundView() -> UIView {
@@ -130,13 +151,38 @@ final class RepositoriesViewController: UITableViewController {
     }
     
     private func handleSuccessState() {
-        tableView.refreshControl?.endRefreshing()
         handleLoadingState(false)
+        tableView.refreshControl?.endRefreshing()
+        tableView.isScrollEnabled = true
         tableView.reloadData()
+    }
+    
+    private func handleErrorState() {
+        handleLoadingState(false)
+        tableView.isScrollEnabled = false
+        setupErrorFeedback()
+    }
+    
+    private func setupErrorFeedback() {
+        switch viewModel.state {
+        case .error(let error) where error == .notFound:
+            feedbackView.setup(data: Constants.FeedbackView.emptyStateData)
+        case .error:
+            feedbackView.setup(data: Constants.FeedbackView.errorStateData)
+        default:
+            tableView.backgroundView = nil
+            return
+        }
+        
+        tableView.backgroundView = feedbackView
     }
 }
 
 extension RepositoriesViewController: RepositoriesViewModelDelegate {
+    func onPullToRefreshError() {
+        tableView.refreshControl?.endRefreshing()
+    }
+    
     
     func onStateUpdate(_ state: RepositoriesScreenState) {
         handleStateChange(state)
