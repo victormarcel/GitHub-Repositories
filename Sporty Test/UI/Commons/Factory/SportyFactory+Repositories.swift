@@ -12,7 +12,8 @@ import MockLiveServer
 extension SportyFactory {
     
     func makeRepositoriesViewController(delegate: RepositoriesViewControllerDelegate?) -> RepositoriesViewController {
-        let viewModel = RepositoriesViewModel(gitHubAPI: GitHubAPI(), mockLiveServer: MockLiveServer())
+        let service = RepositoriesService(gitHubAPI: GitHubAPI(), mockLiveServer: MockLiveServer())
+        let viewModel = RepositoriesViewModel(service: service)
         let viewController = RepositoriesViewController(viewModel: viewModel)
         viewController.delegate = delegate
         

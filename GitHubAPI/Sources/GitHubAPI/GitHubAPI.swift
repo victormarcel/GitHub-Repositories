@@ -64,7 +64,7 @@ public struct GitHubAPI: Sendable {
             request.setValue("Bearer \(authorisationToken)", forHTTPHeaderField: "Authorization")
         }
 
-        let (data, response) = try await urlSession.data(for: request)
+        let (data, response) = try await fetchData(for: request)
         return try handleResponse(response, data: data)
     }
     
@@ -83,11 +83,21 @@ public struct GitHubAPI: Sendable {
             request.setValue("Bearer \(authorisationToken)", forHTTPHeaderField: "Authorization")
         }
         
-        let (data, response) = try await urlSession.data(for: request)
+        let (data, response) = try await fetchData(for: request)
         return try handleResponse(response, data: data)
     }
     
     // MARK: - PRIVATE METHODS
+    
+    /// Performs an asynchronous network request and returns the raw response.
+    ///
+    /// - Parameter request: The `URLRequest` to be executed.
+    /// - Returns: A tuple containing the raw `Data` and `URLResponse` returned by the server.
+    /// - Throws: `URLError` if the request fails due to network connectivity issues.
+
+    private func fetchData(for request: URLRequest) async throws -> (Data, URLResponse) {
+        return try await urlSession.data(for: request)
+    }
     
     /// Validates the HTTP response and decodes the response body into the specified type.
     /// Throws a `GitHubAPIError` if the response is invalid, unsuccessful, or cannot be decoded.

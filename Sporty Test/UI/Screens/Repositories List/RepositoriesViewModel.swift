@@ -7,7 +7,6 @@
 
 import Foundation
 import GitHubAPI
-import MockLiveServer
 
 protocol RepositoriesViewModelDelegate: AnyObject {
     
@@ -18,14 +17,15 @@ protocol RepositoriesViewModelDelegate: AnyObject {
 @MainActor
 class RepositoriesViewModel {
     
+    // MARK: - CONSTANTS
+    
     enum Constants {
         static let defaultOrganizationName = "swiftlang"
     }
     
     // MARK: - PRIVATE PROPERTIES
-    
-    private let gitHubAPI: GitHubAPI
-    private let mockLiveServer: MockLiveServer
+
+    private let service: RepositoriesServiceProtocol
     
     // MARK: - INTERNAL PROPERTIES
     
@@ -41,9 +41,8 @@ class RepositoriesViewModel {
     
     // MARK: - INITIALIZERS
     
-    init(gitHubAPI: GitHubAPI, mockLiveServer: MockLiveServer) {
-        self.gitHubAPI = gitHubAPI
-        self.mockLiveServer = mockLiveServer
+    init(service: RepositoriesServiceProtocol) {
+        self.service = service
     }
     
     // MARK: - INTERNAL METHODS
@@ -84,19 +83,22 @@ class RepositoriesViewModel {
     ) async {
         state = event.loadingState
         do {
-            try await Task.sleep(for: .seconds(1))
-            repositories = try await gitHubAPI.repositoriesForOrganisation(organizationName)
+            repositories = try await service.fetchRepositories(for: organizationName)
             currentOrganizationName = organizationName
             state = .success
         } catch {
-            guard event != .pullToRefresh else {
-                delegate?.onPullToRefreshError()
-                return
-            }
-            
-            cleanCurrentOrganizationResult()
-            state = buildState(by: error)
+            handle(error: error, event: event)
         }
+    }
+    
+    private func handle(error: Error, event: RepositoriesScreenFetchEvent) {
+        guard event != .pullToRefresh else {
+            delegate?.onPullToRefreshError()
+            return
+        }
+        
+        cleanCurrentOrganizationResult()
+        state = buildState(by: error)
     }
     
     private func cleanCurrentOrganizationResult() {
