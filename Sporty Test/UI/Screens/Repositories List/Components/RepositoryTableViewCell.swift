@@ -47,6 +47,7 @@ final class RepositoryTableViewCell: UITableViewCell {
         label.font = boldDescriptor.flatMap { UIFont(descriptor: $0, size: .zero) } ?? baseFont
         label.adjustsFontForContentSizeCategory = true
         label.setContentHuggingPriority(.defaultHigh, for: .horizontal)
+        label.numberOfLines = .zero
         return label
     }()
     
@@ -96,6 +97,14 @@ final class RepositoryTableViewCell: UITableViewCell {
     @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+    
+    // MARK: - LIFE CICLY
+    
+    override func prepareForReuse() {
+        nameLabel.text = .empty
+        descriptionLabel.text = .empty
+        starCountLabel.text = .empty
     }
     
     // MARK: - INTERNAL METHODS

@@ -13,16 +13,11 @@ final class SearchView: UIView {
     
     private enum Constants {
         
-        enum MainStackView {
-            static let spacing: CGFloat = 12
-            static let verticalMargin: CGFloat = 12
-            static let horizontalMargin: CGFloat = 16
-        }
-        
         enum InputStackView {
             static let spacing: CGFloat = 8
             static let layoutMargins = UIEdgeInsets(top: 0, left: 12, bottom: 0, right: 12)
             static let cornerRadius: CGFloat = 12
+            static let verticalMargin: CGFloat = 12
         }
         
         enum SearchIconImageView {
@@ -31,16 +26,11 @@ final class SearchView: UIView {
         
         enum TextField {
             static let placeholder = "Search repositories..."
+            static let height: CGFloat = 16
         }
         
         enum ClearButton {
             static let imageName = "xmark.circle.fill"
-        }
-        
-        enum SearchButton {
-            static let title = "Search"
-            static let contentInsets = NSDirectionalEdgeInsets(top: 0, leading: 12, bottom: 0, trailing: 12)
-            static let height: CGFloat = 44
         }
     }
     
@@ -50,15 +40,6 @@ final class SearchView: UIView {
     var onSearchTapped: ((String) -> Void)?
     
     // MARK: - UI
-
-    private lazy var mainStackView: UIStackView = {
-        let stack = UIStackView(arrangedSubviews: [inputStackView, searchButton])
-        stack.axis = .horizontal
-        stack.alignment = .center
-        stack.spacing = Constants.MainStackView.spacing
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        return stack
-    }()
     
     private lazy var inputStackView: UIStackView = {
         let stack = UIStackView(arrangedSubviews: [searchIconImageView, textField, clearButton])
@@ -106,19 +87,6 @@ final class SearchView: UIView {
         return button
     }()
 
-    private lazy var searchButton: UIButton = {
-        var config = UIButton.Configuration.filled()
-        config.title = Constants.SearchButton.title
-        config.cornerStyle = .medium
-        config.baseBackgroundColor = .systemBlue
-        config.baseForegroundColor = .white
-        let button = UIButton(configuration: config)
-        button.setContentHuggingPriority(.required, for: .horizontal)
-        button.addTarget(self, action: #selector(didTapSearch), for: .touchUpInside)
-        button.translatesAutoresizingMaskIntoConstraints = false
-        return button
-    }()
-
     // MARK: - INITIALIZERS
 
     override init(frame: CGRect) {
@@ -150,15 +118,15 @@ final class SearchView: UIView {
     }
     
     private func setupLayoutConstraints() {
-        addSubview(mainStackView)
+        addSubview(inputStackView)
         
         NSLayoutConstraint.activate([
-            mainStackView.topAnchor.constraint(equalTo: topAnchor, constant: Constants.MainStackView.verticalMargin),
-            mainStackView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: Constants.MainStackView.horizontalMargin),
-            mainStackView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -Constants.MainStackView.horizontalMargin),
-            mainStackView.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -Constants.MainStackView.verticalMargin),
-
-            searchButton.heightAnchor.constraint(equalToConstant: Constants.SearchButton.height),
+            textField.heightAnchor.constraint(equalToConstant: Constants.TextField.height),
+            
+            inputStackView.topAnchor.constraint(equalTo: topAnchor, constant: Constants.InputStackView.verticalMargin),
+            inputStackView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            inputStackView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            inputStackView.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -Constants.InputStackView.verticalMargin)
         ])
     }
 
@@ -171,10 +139,11 @@ final class SearchView: UIView {
     @objc private func didTapClear() {
         setText(.empty)
         clearButton.isHidden = true
+        textField.becomeFirstResponder()
         onTextChanged?(.empty)
     }
 
-    @objc private func didTapSearch() {
+    private func didTapSearch() {
         textField.resignFirstResponder()
         onSearchTapped?(textField.text ?? .empty)
     }

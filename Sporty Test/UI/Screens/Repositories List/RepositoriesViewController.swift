@@ -11,41 +11,27 @@ protocol RepositoriesViewControllerDelegate: AnyObject {
         viewController: RepositoriesViewController,
         didTapOn repository: GitHubMinimalRepository
     )
+    
+    func repositoriesViewControllerDidTapOnKeyButton(
+        viewController: RepositoriesViewController
+    )
 }
 
 /// A view controller that displays a list of GitHub repositories for the "swiftlang" organization.
 final class RepositoriesViewController: UITableViewController {
     
-    // MARK: - CONSTANTS
-    
-    private enum Constants {
-        
-        enum ViewController {
-            static let title = "Repositories"
-        }
-        
-        enum TableView {
-            static let numberOfSections = 1
-        }
-        
-        enum FeedbackView {
-            static let errorStateData = FeedbackViewData(
-                imageName: "wifi.slash",
-                title: "Couldn't Load Repositories",
-                description: "Something went wrong on our end. Please try again later."
-            )
-            
-            static let emptyStateData = FeedbackViewData(
-                imageName: "tray",
-                title: "No Repositories Found",
-                description: "We couldn't find any repositories matching your search. Try different keywords."
-            )
-        }
-    }
-    
     // MARK: - PRIVATE PROPERTIES
     
     private let viewModel: RepositoriesViewModel
+    
+    private lazy var onSearchTap: (String) -> Void = { [weak self] text in
+        self?.viewModel.onSearchTap(text)
+    }
+    
+    private lazy var onKeyButtonTap: () -> Void = { [weak self] in
+        guard let self else { return }
+        self.delegate?.repositoriesViewControllerDidTapOnKeyButton(viewController: self)
+    }
     
     // MARK: - INTERNAL PROPERTIES
     
@@ -77,12 +63,13 @@ final class RepositoriesViewController: UITableViewController {
     
     // MARK: - UI
     
-    private lazy var searchView: SearchView = {
-        let searchView = SearchView()
-        searchView.translatesAutoresizingMaskIntoConstraints = false
-        searchView.onSearchTapped = viewModel.onSearchTap
-        searchView.setText(RepositoriesViewModel.Constants.defaultOrganizationName)
-        return searchView
+    private lazy var tableHeaderView: RepositoriesTableHeaderView = {
+        let headerView = RepositoriesTableHeaderView()
+        headerView.translatesAutoresizingMaskIntoConstraints = false
+        headerView.searchView.onSearchTapped = onSearchTap
+        headerView.onKeyTapped = onKeyButtonTap
+        headerView.searchView.setText(RepositoriesViewModel.Constants.defaultOrganizationName)
+        return headerView
     }()
     
     private lazy var feedbackView: FeedbackView = {
@@ -105,10 +92,10 @@ final class RepositoriesViewController: UITableViewController {
     
     private func setupLayoutConstraints() {
         NSLayoutConstraint.activate([
-            searchView.topAnchor.constraint(equalTo: tableView.topAnchor),
-            searchView.leadingAnchor.constraint(equalTo: tableView.leadingAnchor),
-            searchView.trailingAnchor.constraint(equalTo: tableView.trailingAnchor),
-            searchView.widthAnchor.constraint(equalTo: tableView.widthAnchor)
+            tableHeaderView.topAnchor.constraint(equalTo: tableView.topAnchor),
+            tableHeaderView.leadingAnchor.constraint(equalTo: tableView.leadingAnchor),
+            tableHeaderView.trailingAnchor.constraint(equalTo: tableView.trailingAnchor),
+            tableHeaderView.widthAnchor.constraint(equalTo: tableView.widthAnchor)
         ])
     }
     
@@ -117,7 +104,7 @@ final class RepositoriesViewController: UITableViewController {
         tableView.register(RepositoryTableViewCell.self, forCellReuseIdentifier: RepositoryTableViewCell.className)
         tableView.refreshControl = UIRefreshControl()
         tableView.refreshControl?.addTarget(self, action: #selector(didPullToRefresh), for: .valueChanged)
-        tableView.tableHeaderView = searchView
+        tableView.tableHeaderView = tableHeaderView
     }
     
     @objc
@@ -167,6 +154,8 @@ final class RepositoriesViewController: UITableViewController {
         switch viewModel.state {
         case .error(let error) where error == .notFound:
             feedbackView.setup(data: Constants.FeedbackView.emptyStateData)
+        case .error(let error) where error == .unauthorized:
+            feedbackView.setup(data: Constants.FeedbackView.unauthorizedStateData)
         case .error:
             feedbackView.setup(data: Constants.FeedbackView.errorStateData)
         default:
@@ -176,11 +165,17 @@ final class RepositoriesViewController: UITableViewController {
         
         tableView.backgroundView = feedbackView
     }
+    
+    private func hideSearchKeyboard() {
+        tableHeaderView.searchView.textField.resignFirstResponder()
+    }
 }
 
 extension RepositoriesViewController: RepositoriesViewModelDelegate {
+    
     func onPullToRefreshError() {
         tableView.refreshControl?.endRefreshing()
+        showToast(Constants.pullToRefreshErrorDescription)
     }
     
     
@@ -197,6 +192,7 @@ extension RepositoriesViewController {
             return
         }
         
+        hideSearchKeyboard()
         delegate?.repositoriesViewController(viewController: self, didTapOn: repository)
     }
 }
@@ -209,7 +205,7 @@ extension RepositoriesViewController {
     }
     
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        viewModel.state == .loading ? .zero : viewModel.repositories.count
+        viewModel.numberOfRowsInSection
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {

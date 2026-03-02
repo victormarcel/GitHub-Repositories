@@ -20,7 +20,7 @@ public struct GitHubAPI: Sendable {
     // MARK: - PRIVATE PROPERTIES
     
     private let baseURL: URL
-    private let authorisationToken: String?
+    private var authorizationToken: String?
     private let urlSession: URLSession
     
     private let decoder: JSONDecoder = {
@@ -38,11 +38,11 @@ public struct GitHubAPI: Sendable {
     /// - parameter urlSession: The URL session to use for network requests. Defaults to `.shared`.
     public init(
         baseURL: URL = URL(string: "https://api.github.com")!,
-        authorisationToken: String? = nil,
+        authorizationToken: String? = nil,
         urlSession: URLSession = .shared
     ) {
         self.baseURL = baseURL
-        self.authorisationToken = authorisationToken
+        self.authorizationToken = authorizationToken
         self.urlSession = urlSession
     }
     
@@ -60,8 +60,8 @@ public struct GitHubAPI: Sendable {
         request.setValue("application/vnd.github.v3+json", forHTTPHeaderField: "Accept")
         request.setValue("2022-11-28", forHTTPHeaderField: "X-GitHub-Api-Version")
         
-        if let authorisationToken {
-            request.setValue("Bearer \(authorisationToken)", forHTTPHeaderField: "Authorization")
+        if let authorizationToken {
+            request.setValue("Bearer \(authorizationToken)", forHTTPHeaderField: "Authorization")
         }
 
         let (data, response) = try await fetchData(for: request)
@@ -79,12 +79,16 @@ public struct GitHubAPI: Sendable {
         request.setValue("application/vnd.github.v3+json", forHTTPHeaderField: "Accept")
         request.setValue("2022-11-28", forHTTPHeaderField: "X-GitHub-Api-Version")
         
-        if let authorisationToken {
-            request.setValue("Bearer \(authorisationToken)", forHTTPHeaderField: "Authorization")
+        if let authorizationToken {
+            request.setValue("Bearer \(authorizationToken)", forHTTPHeaderField: "Authorization")
         }
         
         let (data, response) = try await fetchData(for: request)
         return try handleResponse(response, data: data)
+    }
+    
+    public mutating func setAuthorizationToken(_ token: String?) {
+        authorizationToken = token
     }
     
     // MARK: - PRIVATE METHODS
@@ -96,6 +100,7 @@ public struct GitHubAPI: Sendable {
     /// - Throws: `URLError` if the request fails due to network connectivity issues.
 
     private func fetchData(for request: URLRequest) async throws -> (Data, URLResponse) {
+        try await Task.sleep(for: .seconds(1))
         return try await urlSession.data(for: request)
     }
     

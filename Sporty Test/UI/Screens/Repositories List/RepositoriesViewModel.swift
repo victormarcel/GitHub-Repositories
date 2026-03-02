@@ -38,6 +38,9 @@ class RepositoriesViewModel {
         }
     }
     weak var delegate: RepositoriesViewModelDelegate?
+    var numberOfRowsInSection: Int {
+        state == .loading ? .zero : repositories.count
+    }
     
     // MARK: - INITIALIZERS
     
@@ -58,8 +61,6 @@ class RepositoriesViewModel {
     func onSearchTap(_ text: String) {
         fetchRepositories(by: text.trimmingCharacters(in: .whitespaces), fetchEvent: .searchButton)
     }
-    
-    
     
     // MARK: - PRIVATE METHODS
     

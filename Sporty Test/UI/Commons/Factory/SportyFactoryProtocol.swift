@@ -5,12 +5,13 @@
 //  Created by Victor Marcel on 27/02/26.
 //
 
-import Foundation
 import GitHubAPI
+import UIKit
 
 @MainActor
 protocol SportyFactoryProtocol {
     
     func makeRepositoriesViewController(delegate: RepositoriesViewControllerDelegate?) -> RepositoriesViewController
     func makeRepositoryViewController(repository: GitHubMinimalRepository) -> RepositoryViewController
+    func makeGitHubApiKeyAlertController() -> GitHubApiKeyPersistanceAlert
 }

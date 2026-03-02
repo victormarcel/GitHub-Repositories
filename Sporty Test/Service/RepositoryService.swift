@@ -12,19 +12,29 @@ final class RepositoryService: RepositoryServiceProtocol {
 
     // MARK: - PRIVATE PROPERTIES
 
-    private let gitHubAPI: GitHubAPI
+    private var gitHubAPI: GitHubAPI
     private let mockLiveServer: MockLiveServer
+    private let keychainManager: KeychainManagerProtocol
 
     // MARK: - INITIALIZERS
 
-    init(gitHubAPI: GitHubAPI, mockLiveServer: MockLiveServer) {
+    init(gitHubAPI: GitHubAPI, mockLiveServer: MockLiveServer, keychainManager: KeychainManagerProtocol) {
         self.gitHubAPI = gitHubAPI
         self.mockLiveServer = mockLiveServer
+        self.keychainManager = keychainManager
     }
 
     // MARK: - INTERNAL METHODS
 
     func fetchRepositories(for organization: String) async throws -> [GitHubMinimalRepository] {
-        try await gitHubAPI.repositoriesForOrganisation(organization)
+        updateApiKeyInServiceApi()
+        return try await gitHubAPI.repositoriesForOrganisation(organization)
+    }
+    
+    // MARK: - PRIVATE METHODS
+    
+    private func updateApiKeyInServiceApi() {
+        let apiKey = try? keychainManager.retrieve(for: .apiKey)
+        gitHubAPI.setAuthorizationToken(apiKey)
     }
 }

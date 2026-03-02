@@ -10,6 +10,10 @@ import GitHubAPI
 
 extension AppCoordinator: RepositoriesViewControllerDelegate {
     
+    func repositoriesViewControllerDidTapOnKeyButton(viewController: RepositoriesViewController) {
+        presentGitHubApiKeyAlertController()
+    }
+    
     func repositoriesViewController(
         viewController: RepositoriesViewController,
         didTapOn repository: GitHubMinimalRepository

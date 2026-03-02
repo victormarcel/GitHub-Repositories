@@ -33,9 +33,18 @@ final class AppCoordinator {
         push(viewController)
     }
     
+    func presentGitHubApiKeyAlertController() {
+        let alert = factory.makeGitHubApiKeyAlertController()
+        present(alert)
+    }
+    
     // MARK: - PRIVATE METHODS
     
     private func push(_ viewController: UIViewController, animated: Bool = true) {
         navigationViewController?.pushViewController(viewController, animated: animated)
+    }
+    
+    private func present(_ viewController: UIViewController, animated: Bool = true) {
+        navigationViewController?.present(viewController, animated: animated)
     }
 }
