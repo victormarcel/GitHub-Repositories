@@ -1,3 +1,4 @@
+import Combine
 import UIKit
 import GitHubAPI
 
@@ -113,6 +114,10 @@ final class RepositoryTableViewCell: UITableViewCell {
         nameLabel.text = repository.name
         descriptionLabel.text = repository.description
         starCountLabel.text = repository.stargazersCount.formatted()
+    }
+    
+    func updateStarCount(_ count: Int) {
+        starCountLabel.text = count.formatted()
     }
     
     // MARK: - PRIVATE METHODS

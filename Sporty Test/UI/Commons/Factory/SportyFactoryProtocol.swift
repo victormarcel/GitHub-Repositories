@@ -12,6 +12,6 @@ import UIKit
 protocol SportyFactoryProtocol {
     
     func makeRepositoriesViewController(delegate: RepositoriesViewControllerDelegate?) -> RepositoriesViewController
-    func makeRepositoryViewController(repository: GitHubMinimalRepository) -> RepositoryViewController
+    func makeRepositoryViewController(repository: GitHubMinimalRepository) -> UIViewController
     func makeGitHubApiKeyAlertController() -> GitHubApiKeyPersistanceAlert
 }

@@ -17,6 +17,7 @@ final class GitHubApiKeyPersistanceAlert: UIAlertController {
         static let placeholder = "ghp_xxxxxxxxxxxxxxxxxxxx"
         static let saveTitle = "Save"
         static let cancelTitle = "Cancel"
+        static let remove = "Remove"
     }
     
     // MARK: - PRIVATE PROPERTIES
@@ -52,6 +53,10 @@ final class GitHubApiKeyPersistanceAlert: UIAlertController {
             guard let self, let apiKey = textFields?.first?.text, !apiKey.isEmpty else { return }
             save(apiKey: apiKey)
         })
+        addAction(UIAlertAction(title: Constants.remove, style: .default) { [weak self] _ in
+            guard let self else { return }
+            remove()
+        })
     }
     
     private func setupLayout() {
@@ -70,5 +75,9 @@ final class GitHubApiKeyPersistanceAlert: UIAlertController {
     
     private func save(apiKey text: String) {
         try? keychainManager.save(text, for: .apiKey)
+    }
+    
+    private func remove() {
+        try? keychainManager.delete(for: .apiKey)
     }
 }

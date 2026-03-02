@@ -5,12 +5,12 @@
 //  Created by Victor Marcel on 27/02/26.
 //
 
-import Foundation
 import GitHubAPI
+import UIKit
 
 extension SportyFactory {
     
-    func makeRepositoryViewController(repository: GitHubMinimalRepository) -> RepositoryViewController {
-        return .init(minimalRepository: repository, gitHubAPI: GitHubAPI())
+    func makeRepositoryViewController(repository: GitHubMinimalRepository) -> UIViewController {
+        return RepositoryView(minimalRepository: repository, gitHubAPI: .init()).embeddedInViewController()
     }
 }

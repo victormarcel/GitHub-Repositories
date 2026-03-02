@@ -13,5 +13,5 @@ public struct GitHubMinimalRepository: Sendable, Codable {
     public let description: String?
 
     /// The number of stars the repository has received.
-    public let stargazersCount: Int
+    public var stargazersCount: Int
 }

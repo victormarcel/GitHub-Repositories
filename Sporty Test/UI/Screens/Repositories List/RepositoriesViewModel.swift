@@ -5,12 +5,15 @@
 //  Created by Victor Marcel on 25/02/26.
 //
 
+import Combine
 import Foundation
 import GitHubAPI
+import MockLiveServer
 
 protocol RepositoriesViewModelDelegate: AnyObject {
     
     func onStateUpdate(_ state: RepositoriesScreenState)
+    func onRepositoryStarCountChange(_ repository: GitHubMinimalRepository, newStarCount: Int)
     func onPullToRefreshError()
 }
 
@@ -26,6 +29,7 @@ class RepositoriesViewModel {
     // MARK: - PRIVATE PROPERTIES
 
     private let service: RepositoryServiceProtocol
+    private var starCountSubscribers: [Int: AnyCancellable] = [:]
     
     // MARK: - INTERNAL PROPERTIES
     
@@ -62,6 +66,22 @@ class RepositoriesViewModel {
         fetchRepositories(by: text.trimmingCharacters(in: .whitespaces), fetchEvent: .searchButton)
     }
     
+    func didSetupCell(at index: Int) {
+        guard let repository = repositories[safe: index] else {
+            return
+        }
+        
+        registerStarCountSubscriber(for: repository)
+    }
+    
+    func didEndDisplayingCell(at index: Int) {
+        guard let repository = repositories[safe: index] else {
+            return
+        }
+        
+        removeStarCountSubscriber(for: repository)
+    }
+    
     // MARK: - PRIVATE METHODS
     
     private func fetchRepositories(by organizationName: String, fetchEvent: RepositoriesScreenFetchEvent) {
@@ -70,6 +90,7 @@ class RepositoriesViewModel {
         }
         
         Task {
+            removeAllStarCountSubscribers()
             await performRepositoriesRequest(organizationName: organizationName, triggeredBy: fetchEvent)
         }
     }
@@ -113,5 +134,41 @@ class RepositoriesViewModel {
         }
         
         return .error(githubErrorState)
+    }
+    
+    private func removeAllStarCountSubscribers() {
+        starCountSubscribers.forEach {
+            $0.value.cancel()
+            starCountSubscribers[$0.key] = nil
+        }
+    }
+        
+    private func buildStarCountSubscriber(for repository: GitHubMinimalRepository) -> @Sendable (Int) -> Void {
+        return { [weak self] newStarCount in
+            Task {
+                await self?.updateRepositoryStarCount(repository, newStarCount: newStarCount)
+                await self?.delegate?.onRepositoryStarCountChange(repository, newStarCount: newStarCount)
+            }
+        }
+    }
+    
+    private func updateRepositoryStarCount(_ repository: GitHubMinimalRepository, newStarCount: Int) {
+        guard let index = repositories.firstIndex(where: { $0.id == repository.id }) else {
+            return
+        }
+        
+        repositories[index].stargazersCount = newStarCount
+    }
+    
+    private func registerStarCountSubscriber(for repository: GitHubMinimalRepository) {
+        Task {
+            let builderSubscriber = buildStarCountSubscriber(for: repository)
+            let cancellable = await service.registerStarCountSubscriber(for: repository, builderSubscriber)
+            starCountSubscribers[repository.id] = cancellable
+        }
+    }
+    
+    private func removeStarCountSubscriber(for repository: GitHubMinimalRepository) {
+        starCountSubscribers[repository.id]?.cancel()
     }
 }

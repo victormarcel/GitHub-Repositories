@@ -5,6 +5,7 @@
 //  Created by Victor Marcel on 01/03/26.
 //
 
+import Combine
 import GitHubAPI
 import MockLiveServer
 
@@ -29,6 +30,17 @@ final class RepositoryService: RepositoryServiceProtocol {
     func fetchRepositories(for organization: String) async throws -> [GitHubMinimalRepository] {
         updateApiKeyInServiceApi()
         return try await gitHubAPI.repositoriesForOrganisation(organization)
+    }
+    
+    func registerStarCountSubscriber(
+        for repository: GitHubMinimalRepository,
+        _ subscriber: @escaping MockLiveServer.Subscriber
+    ) async -> AnyCancellable? {
+        return try? await mockLiveServer.subscribeToRepo(
+            repoId: repository.id,
+            currentStars: repository.stargazersCount,
+            subscriber: subscriber
+        )
     }
     
     // MARK: - PRIVATE METHODS

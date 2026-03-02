@@ -173,11 +173,21 @@ final class RepositoriesViewController: UITableViewController {
 
 extension RepositoriesViewController: RepositoriesViewModelDelegate {
     
+    func onRepositoryStarCountChange(_ repository: GitHubMinimalRepository, newStarCount: Int) {
+        Task { @MainActor in
+            guard let index = self.viewModel.repositories.firstIndex(where: { $0.id == repository.id }),
+                  let cell = self.tableView.cellForRow(at: .init(row: index, section: .zero)) as? RepositoryTableViewCell else {
+                return
+            }
+            
+            cell.updateStarCount(newStarCount)
+        }
+    }
+    
     func onPullToRefreshError() {
         tableView.refreshControl?.endRefreshing()
         showToast(Constants.pullToRefreshErrorDescription)
     }
-    
     
     func onStateUpdate(_ state: RepositoriesScreenState) {
         handleStateChange(state)
@@ -194,6 +204,10 @@ extension RepositoriesViewController {
         
         hideSearchKeyboard()
         delegate?.repositoriesViewController(viewController: self, didTapOn: repository)
+    }
+    
+    override func tableView(_ tableView: UITableView, didEndDisplaying cell: UITableViewCell, forRowAt indexPath: IndexPath) {
+        viewModel.didEndDisplayingCell(at: indexPath.row)
     }
 }
 
@@ -217,6 +231,8 @@ extension RepositoriesViewController {
         }
         
         repositoryCell.setup(by: repository)
+        viewModel.didSetupCell(at: indexPath.row)
+        
         return repositoryCell
     }
 }
